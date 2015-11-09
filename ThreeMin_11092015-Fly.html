@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>PDS-2015</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+   <style type="text/css">
+            body{
+            color: white;
+            font-family: "Lucida Sans Unicode", Lucida Grande, sans-serif;
+            margin: 0px 0px;
+            padding: 0px 0px;
+            }
+
+            #header {
+				padding: 15px;
+	background-color: rgba(63,99,116,0.30);
+	position: absolute;
+            }
+           
+        
+	</style>
+</head>
+
+<script src="lib/three.min.js"></script>
+<script src="lib/TerrainLoader.js"></script>
+<script src="lib/FlyControls.js"></script>
+<script>
+
+	//Variables
+    var width  = window.innerWidth,
+        height = window.innerHeight;
+		
+	var viewport;
+	
+	var viewportWidth = (width);
+    var viewportHeight = (height);
+	
+	var controls;
+	
+
+
+	//Constructors
+	
+	var renderer = new THREE.WebGLRenderer({antialias: true});
+	
+	var scene = new THREE.Scene();
+					
+	var camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1500); 
+	
+	var dummy = new THREE.Object3D();
+            var controls = new THREE.FlyControls( dummy );
+	
+    var terrainLoader = new THREE.TerrainLoader();
+    terrainLoader.load('assets/PDSmesh.bin', function(data) {
+		
+        var geometry = new THREE.PlaneGeometry(1600, 1600, 199, 199
+		);
+		
+        for (var i = 0, l = geometry.vertices.length; i < l; i++) {
+            geometry.vertices[i].z = data[i] / 65535 * 150;
+        }
+	
+        var material = new THREE.MeshPhongMaterial({
+            map: THREE.ImageUtils.loadTexture('assets/PDS_texture.jpg')
+        });
+		
+        var plane = new THREE.Mesh(geometry, material);
+   		scene.add(plane);
+    	});
+		
+	 var dirLight = new THREE.DirectionalLight( 0xffffff, .075);
+    dirLight.position.set( -10, 20, 50).normalize();
+
+    var ambiLight = new THREE.AmbientLight(0x999999);
+    
+	window.requestAnimFrame = (function(){
+              return  window.requestAnimationFrame       || 
+                      window.webkitRequestAnimationFrame || 
+                      window.mozRequestAnimationFrame    || 
+                      window.oRequestAnimationFrame      || 
+                      window.msRequestAnimationFrame     || 
+                      function( callback ){
+                        window.setTimeout(callback, 1000 / 60);
+                      };
+            })();
+	
+	//collision		
+	
+	var collisionSurfaceURL = 'assets/PDSmesh.bin';
+
+// Load in the plane that we're going to use for collision detection
+terrainLoader.load(collisionSurfaceURL, function(data) {
+    var geometry = new THREE.PlaneGeometry(1600, 1600, 199, 199);
+
+    for (var i = 0, l = geometry.vertices.length; i < l; i++) {
+        geometry.vertices[i].z = data[i] / 65535 * 150 + 2;
+    }
+
+    var material = new THREE.MeshLambertMaterial({
+        color: 0xffffff,
+        wireframe: true,
+        visible: false
+    });
+
+    collisionSurface = new THREE.Mesh(geometry, material);
+
+    scene.add(collisionSurface);
+});
+	
+	//Initialization
+	
+	function initialize() {
+		
+	renderer.setSize(viewportWidth, viewportHeight);
+                viewport = document.getElementById('viewport');
+                viewport.appendChild(renderer.domElement);
+    
+	 scene.fog = new THREE.FogExp2(0x1D76BB, 0.001);
+	
+    scene.add(ambiLight);
+    scene.add(dirLight);
+	
+	
+	camera.position.set(-300,-800,200);	
+	camera.up = new THREE.Vector3(0,0,1);
+	camera.lookAt(new THREE.Vector3(0,250,150));
+	
+	
+	  //attaches fly controls to the camera
+                controls = new THREE.FlyControls( camera );
+                //camera control properties
+                controls.movementSpeed = 1.5;
+                controls.domElement = viewport;
+                controls.rollSpeed = 0.01;
+                controls.autoForward = false;
+                controls.dragToLook = true;
+				
+		scene.add(ambiLight);
+    	scene.add(dirLight);
+		scene.add(camera);
+		    
+	 update();
+            }
+
+
+
+        //----Update----//
+            function update() {
+                //requests the browser to call update at it's own pace
+                requestAnimFrame( update );
+
+                //update controls
+                controls.update( 1 );
+
+                //call draw
+                render();
+            }
+
+	
+	function render() {
+        renderer.render(scene, camera);
+    }
+	
+</script>
+
+<body bgcolor="#1D76BB" onload="initialize();">
+        <div id="header">
+<h3>Portland Disposal Site with Flying Camera</h3>
+            <p>
+            Move: W, A, S, D, R, F
+            <br>
+            Roll: Q, E
+            <br>
+            Look: arrow keys / drag mouse
+          </p>
+          <img src="assets/Inspire_Logo_Color_RGB_small.png" width="162" height="56" alt=""/>
+            </div>
+
+        <div id="viewport"></div>
+</body>
+</html>
